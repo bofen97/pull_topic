@@ -12,6 +12,7 @@ import (
 type PullCustomTopic struct {
 	Subjt   *SubjectTable
 	Session *SessionTable
+	RedisW  *RedisWrapper
 }
 
 type PullCustomTopicData struct {
@@ -94,6 +95,12 @@ func (pull *PullCustomTopic) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		//send topicinfo to user.
 		for _, topic := range topics {
+			str, err := pull.RedisW.GetKey(topic)
+			if err == nil {
+				w.Write([]byte(str))
+				log.Printf("Cache Hited %s \n", topic)
+				continue
+			}
 			if err := RequestToQueryServerCustomTopic(w, topic); err != nil {
 				w.WriteHeader(http.StatusBadRequest)
 				return
