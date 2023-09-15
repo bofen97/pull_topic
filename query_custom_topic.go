@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 )
 
 type PullCustomTopic struct {
@@ -40,6 +41,7 @@ func (pull *PullCustomTopic) GetTopicStr(uid int) ([]string, error) {
 }
 
 func RequestToQueryServerCustomTopic(w http.ResponseWriter, topic string) error {
+	topic = url.QueryEscape(topic)
 	reqStr := fmt.Sprintf(queryServe+"/query_custom?topic=%s", topic)
 	log.Printf("Gen Request Str %s \n", reqStr)
 
