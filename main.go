@@ -32,6 +32,11 @@ func main() {
 		log.Fatal("serverPort is none")
 		return
 	}
+	redisurl := os.Getenv("redisurl")
+	if redisurl == "" {
+		log.Fatal("redisurl is none")
+		return
+	}
 
 	pull := new(PullNewTopic)
 	pull.Subjt = new(SubjectTable)
@@ -49,6 +54,7 @@ func main() {
 	pullCustom := new(PullCustomTopic)
 	pullCustom.Subjt = new(SubjectTable)
 	pullCustom.Session = new(SessionTable)
+	pullCustom.RedisW = new(RedisWrapper)
 
 	if err := pullCustom.Subjt.Connect(sqlurl); err != nil {
 		log.Fatal(err)
@@ -58,6 +64,11 @@ func main() {
 		log.Fatal(err)
 	}
 	log.Print("pullCustom connect !")
+
+	if err := pullCustom.RedisW.Connect(redisurl); err != nil {
+		log.Fatal(err)
+	}
+	log.Print("redis connect !")
 
 	mux := http.NewServeMux()
 	mux.Handle("/pull_topic", pull)
