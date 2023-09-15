@@ -42,7 +42,8 @@ func (pull *PullNewTopic) GetTopicStr(uid int) ([]string, error) {
 }
 
 func RequestToQueryServer(w http.ResponseWriter, topic string) error {
-	timeStr := strings.Split(time.Now().String(), " ")[0]
+	preDay := time.Now().Add(-24 * time.Hour)
+	timeStr := strings.Split(preDay.String(), " ")[0]
 	reqStr := fmt.Sprintf(queryServe+"/query?topic=%s&date=%s", topic, timeStr)
 	log.Printf("Gen Request Str %s \n", reqStr)
 
