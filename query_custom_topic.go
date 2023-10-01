@@ -42,22 +42,22 @@ func (pull *PullCustomTopic) GetTopicStr(uid int) ([]string, error) {
 
 }
 
-func RequestToQueryServerCustomTopic(w http.ResponseWriter, queryClient QueryClient, topic string) error {
+func RequestToQueryServerCustomTopic(queryClient QueryClient, topic string) ([]byte, error) {
 	topic = url.QueryEscape(topic)
 
 	log.Printf("Gen Request Topic [%s] And Go GRPC . \n", topic)
 	rts, err := queryClient.QueryCustom(context.Background(), &QueryCustomArg{Topic: topic})
 	if err != nil {
 		log.Print(err)
-		return err
+		return nil, err
 	}
 	data, err := json.Marshal(rts.GetQuerys())
 	if err != nil {
 		log.Print(err)
-		return err
+		return nil, err
 	}
-	w.Write(data)
-	return nil
+
+	return data, nil
 }
 
 func (pull *PullCustomTopic) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -93,20 +93,47 @@ func (pull *PullCustomTopic) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		w.Header().Set("Content-Type", "application/json")
 		//send topicinfo to user.
+		var topicResults []*Topic
+
 		for _, topic := range topics {
-			str, err := pull.RedisW.GetKey(topic)
-			if err == nil {
-				w.Write([]byte(str))
-				log.Printf("Cache Hited %s \n", topic)
-				continue
-			}
-			if err := RequestToQueryServerCustomTopic(w, pull.queryClient, topic); err != nil {
+			var topicResult []*Topic
+
+			// str, err := pull.RedisW.GetKey(topic)
+			// if err == nil {
+			// log.Print(len(str))
+			// w.Write([]byte(str))
+			// log.Printf("Cache Hited %s \n", topic)
+			// continue
+			// }
+
+			data, err := RequestToQueryServerCustomTopic(pull.queryClient, topic)
+			if err != nil {
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
+			err = json.Unmarshal(data, &topicResult)
+			if err != nil {
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+			topicResults = append(topicResults, topicResult...)
 		}
+		r, err := json.MarshalIndent(topicResults, " ", " ")
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		w.Write(r)
 		return
 	}
 
 	w.WriteHeader(http.StatusBadRequest)
+}
+
+type Topic struct {
+	Title     string `json:"title"`
+	Url       string `json:"url"`
+	Summary   string `json:"summary"`
+	Authors   string `json:"authors"`
+	Published string `json:"published"`
 }

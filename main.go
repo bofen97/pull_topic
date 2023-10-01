@@ -75,10 +75,10 @@ func main() {
 	}
 	log.Print("pullCustom connect !")
 
-	if err := pullCustom.RedisW.Connect(redisurl); err != nil {
-		log.Fatal(err)
-	}
-	log.Print("redis connect !")
+	// if err := pullCustom.RedisW.Connect(redisurl); err != nil {
+	// 	log.Fatal(err)
+	// }
+	// log.Print("redis connect !")
 
 	mux := http.NewServeMux()
 	mux.Handle("/pull_topic", pull)
