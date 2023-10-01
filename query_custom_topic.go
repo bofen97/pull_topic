@@ -12,7 +12,6 @@ import (
 type PullCustomTopic struct {
 	Subjt       *SubjectTable
 	Session     *SessionTable
-	RedisW      *RedisWrapper
 	queryClient QueryClient
 }
 
@@ -97,14 +96,6 @@ func (pull *PullCustomTopic) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		for _, topic := range topics {
 			var topicResult []*Topic
-
-			// str, err := pull.RedisW.GetKey(topic)
-			// if err == nil {
-			// log.Print(len(str))
-			// w.Write([]byte(str))
-			// log.Printf("Cache Hited %s \n", topic)
-			// continue
-			// }
 
 			data, err := RequestToQueryServerCustomTopic(pull.queryClient, topic)
 			if err != nil {

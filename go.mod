@@ -5,7 +5,6 @@ go 1.21.0
 require github.com/go-sql-driver/mysql v1.7.1
 
 require (
-	github.com/gomodule/redigo v1.8.9
 	google.golang.org/grpc v1.58.2
 	google.golang.org/protobuf v1.31.0
 )
