@@ -1,8 +1,8 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -11,8 +11,9 @@ import (
 )
 
 type PullNewTopic struct {
-	Subjt   *SubjectTable
-	Session *SessionTable
+	Subjt       *SubjectTable
+	Session     *SessionTable
+	queryClient QueryClient
 }
 
 type PullNewTopicData struct {
@@ -41,24 +42,24 @@ func (pull *PullNewTopic) GetTopicStr(uid int) ([]string, error) {
 
 }
 
-func RequestToQueryServer(w http.ResponseWriter, topic string) error {
+func RequestToQueryServer(w http.ResponseWriter, queryClient QueryClient, topic string) error {
 	preDay := time.Now().Add(-24 * time.Hour)
 	timeStr := strings.Split(preDay.String(), " ")[0]
-	reqStr := fmt.Sprintf(queryServe+"/query?topic=%s&date=%s", topic, timeStr)
-	log.Printf("Gen Request Str %s \n", reqStr)
 
-	req, err := http.NewRequest("GET", reqStr, nil)
+	rts, err := queryClient.QueryTopic(context.Background(), &QueryTopicArg{
+		Topic: topic,
+		Date:  timeStr,
+	})
 	if err != nil {
 		log.Print(err)
 		return err
 	}
-
-	respon, err := http.DefaultClient.Do(req)
+	data, err := json.Marshal(rts.GetQuerys())
 	if err != nil {
 		log.Print(err)
 		return err
 	}
-	io.Copy(w, respon.Body)
+	w.Write(data)
 
 	return nil
 }
@@ -96,7 +97,7 @@ func (pull *PullNewTopic) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		//send topicinfo to user.
 		for _, topic := range topics {
-			if err := RequestToQueryServer(w, topic); err != nil {
+			if err := RequestToQueryServer(w, pull.queryClient, topic); err != nil {
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}

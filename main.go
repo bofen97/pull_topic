@@ -4,6 +4,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+
+	grpc "google.golang.org/grpc"
 )
 
 /*
@@ -37,10 +39,17 @@ func main() {
 		log.Fatal("redisurl is none")
 		return
 	}
+	conn, err := grpc.Dial(queryServe, grpc.WithInsecure())
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer conn.Close()
+	qclient := NewQueryClient(conn)
 
 	pull := new(PullNewTopic)
 	pull.Subjt = new(SubjectTable)
 	pull.Session = new(SessionTable)
+	pull.queryClient = qclient
 
 	if err := pull.Subjt.Connect(sqlurl); err != nil {
 		log.Fatal(err)
@@ -55,6 +64,7 @@ func main() {
 	pullCustom.Subjt = new(SubjectTable)
 	pullCustom.Session = new(SessionTable)
 	pullCustom.RedisW = new(RedisWrapper)
+	pullCustom.queryClient = qclient
 
 	if err := pullCustom.Subjt.Connect(sqlurl); err != nil {
 		log.Fatal(err)

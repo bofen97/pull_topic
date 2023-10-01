@@ -1,8 +1,8 @@
 package main
 
 import (
+	context "context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -10,9 +10,10 @@ import (
 )
 
 type PullCustomTopic struct {
-	Subjt   *SubjectTable
-	Session *SessionTable
-	RedisW  *RedisWrapper
+	Subjt       *SubjectTable
+	Session     *SessionTable
+	RedisW      *RedisWrapper
+	queryClient QueryClient
 }
 
 type PullCustomTopicData struct {
@@ -41,23 +42,21 @@ func (pull *PullCustomTopic) GetTopicStr(uid int) ([]string, error) {
 
 }
 
-func RequestToQueryServerCustomTopic(w http.ResponseWriter, topic string) error {
+func RequestToQueryServerCustomTopic(w http.ResponseWriter, queryClient QueryClient, topic string) error {
 	topic = url.QueryEscape(topic)
-	reqStr := fmt.Sprintf(queryServe+"/query_custom?topic=%s", topic)
-	log.Printf("Gen Request Str %s \n", reqStr)
 
-	req, err := http.NewRequest("GET", reqStr, nil)
+	log.Printf("Gen Request Topic [%s] And Go GRPC . \n", topic)
+	rts, err := queryClient.QueryCustom(context.Background(), &QueryCustomArg{Topic: topic})
 	if err != nil {
 		log.Print(err)
 		return err
 	}
-
-	respon, err := http.DefaultClient.Do(req)
+	data, err := json.Marshal(rts.GetQuerys())
 	if err != nil {
 		log.Print(err)
 		return err
 	}
-	io.Copy(w, respon.Body)
+	w.Write(data)
 	return nil
 }
 
@@ -101,7 +100,7 @@ func (pull *PullCustomTopic) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				log.Printf("Cache Hited %s \n", topic)
 				continue
 			}
-			if err := RequestToQueryServerCustomTopic(w, topic); err != nil {
+			if err := RequestToQueryServerCustomTopic(w, pull.queryClient, topic); err != nil {
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
