@@ -42,7 +42,7 @@ func (pull *PullNewTopic) GetTopicStr(uid int) ([]string, error) {
 
 }
 
-func RequestToQueryServer(w http.ResponseWriter, queryClient QueryClient, topic string) error {
+func RequestToQueryServer(queryClient QueryClient, topic string) ([]byte, error) {
 	preDay := time.Now().Add(-24 * time.Hour)
 	timeStr := strings.Split(preDay.String(), " ")[0]
 
@@ -52,16 +52,15 @@ func RequestToQueryServer(w http.ResponseWriter, queryClient QueryClient, topic 
 	})
 	if err != nil {
 		log.Print(err)
-		return err
+		return nil, err
 	}
 	data, err := json.Marshal(rts.GetQuerys())
 	if err != nil {
 		log.Print(err)
-		return err
+		return nil, err
 	}
-	w.Write(data)
 
-	return nil
+	return data, nil
 }
 
 func (pull *PullNewTopic) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -96,12 +95,30 @@ func (pull *PullNewTopic) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
 		//send topicinfo to user.
+		var topicResults []*Topic
+
 		for _, topic := range topics {
-			if err := RequestToQueryServer(w, pull.queryClient, topic); err != nil {
+			var topicResult []*Topic
+
+			data, err := RequestToQueryServer(pull.queryClient, topic)
+			if err != nil {
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
+			err = json.Unmarshal(data, &topicResult)
+			if err != nil {
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+			topicResults = append(topicResults, topicResult...)
+
 		}
+		r, err := json.MarshalIndent(topicResults, " ", " ")
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		w.Write(r)
 		return
 	}
 
