@@ -40,7 +40,7 @@ func main() {
 		log.Fatal(err)
 	}
 	go src.WatchService("query_topic")
-	go src.PutServiceAddr("pull_topic", serviceRegisterCenter.GetCurrentIP()+serverPort)
+	go src.PutServiceAddr("pull_topic", "pull_topic"+serverPort)
 	go src.ListenLaser()
 
 	conn, err := grpc.Dial(src.GetK("query_topic"), grpc.WithInsecure())
