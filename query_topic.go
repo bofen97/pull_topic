@@ -43,7 +43,7 @@ func (pull *PullNewTopic) GetTopicStr(uid int) ([]string, error) {
 }
 
 func RequestToQueryServer(queryClient QueryClient, topic string) ([]byte, error) {
-	preDay := time.Now().Add(-24 * time.Hour)
+	preDay := time.Now().Add(-96 * time.Hour)
 	timeStr := strings.Split(preDay.String(), " ")[0]
 
 	rts, err := queryClient.QueryTopic(context.Background(), &QueryTopicArg{
