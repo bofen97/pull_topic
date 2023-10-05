@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 
+	serviceRegisterCenter "github.com/bofen97/ServiceRegister"
 	grpc "google.golang.org/grpc"
 )
 
@@ -15,18 +16,10 @@ import (
 
 */
 
-var queryServe string
-
 func main() {
-	queryServe = os.Getenv("queryurl")
-	if queryServe == "" {
-		log.Fatal("queryurl is none")
-		return
-	}
-
-	sqlurl := os.Getenv("sqlurl")
-	if sqlurl == "" {
-		log.Fatal("sqlurl is none")
+	etcdserver := os.Getenv("etcdserver")
+	if etcdserver == "" {
+		log.Fatal("etcdserver is none")
 		return
 	}
 	serverPort := os.Getenv("serverport")
@@ -34,17 +27,28 @@ func main() {
 		log.Fatal("serverPort is none")
 		return
 	}
-	redisurl := os.Getenv("redisurl")
-	if redisurl == "" {
-		log.Fatal("redisurl is none")
+	sqlurl := os.Getenv("sqlurl")
+	if sqlurl == "" {
+		log.Fatal("sqlurl is none")
 		return
 	}
-	conn, err := grpc.Dial(queryServe, grpc.WithInsecure())
+
+	src, err := serviceRegisterCenter.NewRegisteService([]string{
+		etcdserver,
+	}, 5)
+	if err != nil {
+		log.Fatal(err)
+	}
+	go src.WatchService("query_topic")
+	go src.PutServiceAddr("pull_topic", serviceRegisterCenter.GetCurrentIP()+serverPort)
+	go src.ListenLaser()
+
+	conn, err := grpc.Dial(src.GetK("query_topic"), grpc.WithInsecure())
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer conn.Close()
-	qclient := NewQueryClient(conn)
+	qclient := NewQueryClient(*conn)
 
 	pull := new(PullNewTopic)
 	pull.Subjt = new(SubjectTable)
