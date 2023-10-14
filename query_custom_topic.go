@@ -16,29 +16,8 @@ type PullCustomTopic struct {
 }
 
 type PullCustomTopicData struct {
-	Session string `json:"session"`
-}
-
-func (pull *PullCustomTopic) GetTopicStr(uid int) ([]string, error) {
-
-	rows, err := pull.Subjt.db.Query("select distinct customlabel from userSubjectTable where uid=?", uid)
-	if err != nil {
-		log.Print(err)
-		return nil, err
-	}
-	var topics []string
-	for rows.Next() {
-		var tmp string
-		err = rows.Scan(&tmp)
-		if err != nil {
-			log.Print(err)
-
-			continue
-		}
-		topics = append(topics, tmp)
-	}
-	return topics, nil
-
+	Session  string `json:"session"`
+	QueryStr string `json:"query"`
 }
 
 func RequestToQueryServerCustomTopic(queryClient QueryClient, topic string) ([]byte, error) {
@@ -67,11 +46,13 @@ func (pull *PullCustomTopic) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		data, err := io.ReadAll(r.Body)
 		if err != nil {
+			log.Print(err)
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 		err = json.Unmarshal(data, &pullData)
 		if err != nil {
+			log.Print(err)
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
@@ -82,35 +63,29 @@ func (pull *PullCustomTopic) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
+		log.Printf("UID [%d] Query %s \n ", uid, pullData.QueryStr)
 
-		//search subject for uid
-		topics, err := pull.GetTopicStr(uid)
+		//get uid , query .
+		w.Header().Set("Content-Type", "application/json")
+
+		var topicResult []*Topic
+
+		query_data, err := RequestToQueryServerCustomTopic(pull.queryClient, pullData.QueryStr)
 		if err != nil {
+			log.Print(err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		err = json.Unmarshal(query_data, &topicResult)
+		if err != nil {
+			log.Print(err)
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		//send topicinfo to user.
-		var topicResults []*Topic
-
-		for _, topic := range topics {
-			var topicResult []*Topic
-
-			data, err := RequestToQueryServerCustomTopic(pull.queryClient, topic)
-			if err != nil {
-				w.WriteHeader(http.StatusBadRequest)
-				return
-			}
-			err = json.Unmarshal(data, &topicResult)
-			if err != nil {
-				w.WriteHeader(http.StatusBadRequest)
-				return
-			}
-			topicResults = append(topicResults, topicResult...)
-		}
-		r, err := json.MarshalIndent(topicResults, " ", " ")
+		r, err := json.MarshalIndent(topicResult, " ", " ")
 		if err != nil {
+			log.Print(err)
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}

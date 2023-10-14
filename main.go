@@ -80,7 +80,7 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.Handle("/pull_topic", pull)
-	mux.Handle("/pull_topic_custom", pullCustom)
+	mux.Handle("/query_custom", pullCustom)
 
 	server := &http.Server{
 		Addr:    serverPort,
