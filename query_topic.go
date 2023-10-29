@@ -11,9 +11,10 @@ import (
 )
 
 type PullNewTopic struct {
-	Subjt       *SubjectTable
-	Session     *SessionTable
-	queryClient QueryClient
+	Subjt          *SubjectTable
+	Session        *SessionTable
+	queryClient    QueryClient
+	subjectService *SubjectServiceTable
 }
 
 type PullNewTopicData struct {
@@ -83,6 +84,19 @@ func (pull *PullNewTopic) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		uid, err := pull.Session.QuerySessionAndRetUid(pullData.Session)
 		if err != nil {
 			log.Printf("Session [%s] error  \n", pullData.Session)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		//
+		yes, err := pull.subjectService.UidIsExpires(uid)
+		if err != nil {
+			log.Print("UidIsExpires  error  \n")
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		if yes {
+			//reject
+			log.Printf("Uid %d IsExpired   \n", uid)
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
