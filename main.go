@@ -53,8 +53,12 @@ func main() {
 	pull := new(PullNewTopic)
 	pull.Subjt = new(SubjectTable)
 	pull.Session = new(SessionTable)
+	pull.subjectService = new(SubjectServiceTable)
 	pull.queryClient = qclient
 
+	if err := pull.subjectService.Connect(sqlurl); err != nil {
+		log.Fatal(err)
+	}
 	if err := pull.Subjt.Connect(sqlurl); err != nil {
 		log.Fatal(err)
 	}
@@ -65,10 +69,14 @@ func main() {
 	log.Print("pull connect !")
 
 	pullCustom := new(PullCustomTopic)
+	pullCustom.SubjectService = new(SubjectServiceTable)
 	pullCustom.Subjt = new(SubjectTable)
 	pullCustom.Session = new(SessionTable)
 	pullCustom.queryClient = qclient
 
+	if err := pullCustom.SubjectService.Connect(sqlurl); err != nil {
+		log.Fatal(err)
+	}
 	if err := pullCustom.Subjt.Connect(sqlurl); err != nil {
 		log.Fatal(err)
 	}

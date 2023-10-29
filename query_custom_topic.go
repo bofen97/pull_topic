@@ -10,9 +10,10 @@ import (
 )
 
 type PullCustomTopic struct {
-	Subjt       *SubjectTable
-	Session     *SessionTable
-	queryClient QueryClient
+	Subjt          *SubjectTable
+	Session        *SessionTable
+	queryClient    QueryClient
+	SubjectService *SubjectServiceTable
 }
 
 type PullCustomTopicData struct {
@@ -64,7 +65,20 @@ func (pull *PullCustomTopic) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		log.Printf("UID [%d] Query %s \n ", uid, pullData.QueryStr)
+		//
+		yes, err := pull.SubjectService.UidIsExpires(uid)
+		if err != nil {
+			log.Print("UidIsExpires error  \n")
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		if yes {
+			//reject
+			log.Printf("Uid %d IsExpired   \n", uid)
+			w.WriteHeader(http.StatusBadRequest)
+			return
 
+		}
 		//get uid , query .
 		w.Header().Set("Content-Type", "application/json")
 
